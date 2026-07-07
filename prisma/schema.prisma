@@ -1,7 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +6,139 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum UserRole {
+  TENANT
+  LANDLORD
+  ADMIN
+}
+
+enum RentalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  COMPLETED
+}
+
+enum PaymentProvider {
+  STRIPE
+  SSLCOMMERZ
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  phone       String?
+  role        UserRole
+  isDeleted   Boolean  @default(false)
+
+  properties  Property[]       @relation("LandlordProperties")
+  requests    RentalRequest[]  @relation("TenantRequests")
+  reviews     Review[]         @relation("TenantReviews")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Category {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+
+  properties  Property[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Property {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  location      String
+  price         Float
+  bedrooms      Int
+  bathrooms     Int
+  image         String?
+  amenities     String[]
+  isAvailable   Boolean @default(true)
+
+  landlordId    String
+  categoryId    String
+
+  landlord       User      @relation("LandlordProperties", fields: [landlordId], references: [id], onDelete: Cascade)
+  category       Category  @relation(fields: [categoryId], references: [id])
+
+  rentalRequests RentalRequest[]
+  reviews        Review[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([landlordId])
+  @@index([categoryId])
+}
+
+model RentalRequest {
+  id          String         @id @default(cuid())
+  moveInDate  DateTime
+  message     String?
+  status      RentalStatus   @default(PENDING)
+
+  tenantId    String
+  propertyId  String
+
+  tenant       User      @relation("TenantRequests", fields: [tenantId], references: [id], onDelete: Cascade)
+  property     Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  payment      Payment?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([propertyId])
+}
+
+model Payment {
+  id                String            @id @default(cuid())
+  amount            Float
+  method            String?
+  transactionId     String            @unique
+  provider          PaymentProvider
+  status            PaymentStatus     @default(PENDING)
+  paidAt            DateTime?
+
+  rentalRequestId   String            @unique
+  rentalRequest     RentalRequest     @relation(fields: [rentalRequestId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  rating      Int
+  comment     String
+
+  tenantId    String
+  propertyId  String
+
+  tenant      User @relation("TenantReviews", fields: [tenantId], references: [id], onDelete: Cascade)
+  property     Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([propertyId])
 }
