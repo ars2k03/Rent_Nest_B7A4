@@ -3,7 +3,7 @@ import { AppError } from "../../utils/AppError.js";
 import { buildPaginationMeta, getPagination } from "../../utils/pagination.js";
 import { sanitizeUser, sanitizeUsers } from "../../utils/sanitizeUser.js";
 import type { AdminQueryInput } from "../../validators/admin.validator.js";
-import type { Prisma } from "../../../generated/prisma/client.js";
+import type { Prisma } from "@prisma/client";
 
 export const getAllUsersService = async (query: AdminQueryInput) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);

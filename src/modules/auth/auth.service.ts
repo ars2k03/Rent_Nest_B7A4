@@ -8,7 +8,7 @@ import type {
   RegisterInput,
   UpdateProfileInput,
 } from "../../validators/auth.validator.js";
-import type { Prisma } from "../../../generated/prisma/client.js";
+import type { Prisma } from "@prisma/client";
 
 export const createUser = async (payload: RegisterInput) => {
   const { name, email, password, role, phone } = payload;

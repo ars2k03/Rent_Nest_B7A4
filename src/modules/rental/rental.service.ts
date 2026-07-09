@@ -7,8 +7,7 @@ import type {
   RentalQueryInput,
   UpdateRentalStatusInput,
 } from "../../validators/rental.validator.js";
-import type { RentalStatus, UserRole } from "../../../generated/prisma/client.js";
-import type { Prisma } from "../../../generated/prisma/client.js";
+import type { Prisma, RentalStatus, UserRole } from "@prisma/client";
 
 const rentalInclude = {
   tenant: true,

@@ -8,11 +8,7 @@ import type {
   CreatePaymentInput,
   PaymentQueryInput,
 } from "../../validators/payment.validator.js";
-import type {
-  PaymentStatus,
-  UserRole,
-} from "../../../generated/prisma/client.js";
-import type { Prisma } from "../../../generated/prisma/client.js";
+import type { PaymentStatus, Prisma, UserRole } from "@prisma/client";
 
 const getStripe = () => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
