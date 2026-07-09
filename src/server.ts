@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
 import authRoutes from "./router/auth.route.js";
 import propertyRoutes from "./modules/property/property.route.js";
@@ -21,7 +21,7 @@ app.use(cors());
 app.use("/api/payments/webhook/stripe", express.raw({ type: "application/json" }));
 app.use(express.json());
 
-app.get("/", (_req, res) => {
+app.get("/", (req : Request, res : Response) => {
   res.status(200).json({
     success: true,
     message: "RentNest API is running...",
