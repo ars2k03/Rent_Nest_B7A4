@@ -12,8 +12,8 @@ export const validate =
       return next(result.error);
     }
 
-    if (target !== "headers") {
-      req[target] = result.data as (typeof req)[typeof target];
+    if (target === "body") {
+      req.body = result.data as Request["body"];
     }
 
     return next();
