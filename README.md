@@ -5,7 +5,23 @@
 
 ## Project Overview
 
-RentNest is a backend API for a rental property marketplace. Landlords can list properties, manage availability, and approve or reject rental requests. Tenants can browse listings, submit rental requests, and leave reviews. Admins oversee the entire platform, managing users and moderating content.
+RentNest is a backend API for a rental property marketplace. Landlords can list properties, manage availability, and approve or reject rental requests. Tenants can browse listings, submit rental requests, pay rent, and leave reviews. Admins oversee the entire platform, managing users and moderating content.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | Node.js |
+| Framework | Express 5 |
+| Language | TypeScript |
+| ORM | Prisma 7 |
+| Database | PostgreSQL |
+| Auth | JWT + bcrypt |
+| Validation | Zod |
+| Payments | Stripe + SSLCommerz |
+| Deployment | Render |
 
 ---
 
@@ -13,231 +29,244 @@ RentNest is a backend API for a rental property marketplace. Landlords can list 
 
 | Role | Description | Key Permissions |
 |------|-------------|-----------------|
-| **Tenant** | Users looking for rental properties | Browse listings, submit rental requests, leave reviews, manage profile |
-| **Landlord** | Property owners who list rentals | Create/manage listings, approve/reject requests, view tenant history |
+| **Tenant** | Users looking for rental properties | Browse listings, submit rental requests, make payments, leave reviews, manage profile |
+| **Landlord** | Property owners who list rentals | Create/manage listings, approve/reject requests, complete active rentals |
 | **Admin** | Platform moderators | Manage all users, oversee all listings & requests, manage categories |
 
-> 💡 **Note**: Users select their role during registration.
+> Users select their role (`TENANT` or `LANDLORD`) during registration. Admin accounts are seeded.
 
 ---
 
-## Tech Stack
+## API Response Format
 
-🛠️ **See [README.md](./README.md#-tech-stack) for complete technology specifications.**
+Every endpoint returns a consistent shape:
+
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully",
+  "errorDetails": null,
+  "data": {}
+}
+```
+
+Validation and server errors also include `errorDetails`.
 
 ---
 
-## Features
+## Getting Started
 
-### Public Features
-- Browse all available rental properties
-- Search and filter by location, price range, property type, and amenities
-- View detailed property listings
+### Prerequisites
 
-### Tenant Features
-- Register and login as tenant
-- Submit rental requests for properties
-- **Make payments via Stripe or SSLCommerz after rental request is approved**
-- **View payment history and payment status**
-- View rental request history (pending, approved, rejected)
-- Leave reviews after a completed rental
-- Manage profile
+- Node.js 20+
+- PostgreSQL database
+- Stripe test keys (optional for local payment testing)
 
-### Landlord Features
-- Register and login as landlord
-- Create, edit, and remove property listings
-- Set property availability status
-- Approve or reject rental requests
-- View rental history and tenant reviews
+### Installation
 
-### Admin Features
-- View all users (tenants and landlords)
-- Manage user status (ban/unban)
-- View all listings and rental requests
-- Manage property categories
+```bash
+git clone <repository-url>
+cd B7A4
+npm install
+cp .env.example .env
+```
+
+Update `.env` with your database and JWT credentials.
+
+### Database Setup
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+npm run seed
+```
+
+### Run Locally
+
+```bash
+npm run dev
+```
+
+Server starts at `http://localhost:8000`.
+
+### Production Build
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## Seeded Credentials
+
+After running `npm run seed`:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@rentnest.com | Admin@12345 |
+| Landlord | landlord@rentnest.com | Landlord@12345 |
+| Tenant | tenant@rentnest.com | Tenant@12345 |
+
+> `isDeleted: true` is used as the ban flag for admin user moderation.
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret for signing JWT tokens |
+| `PORT` | Server port (default: 8000) |
+| `APP_URL` | Public API URL for payment callbacks |
+| `STRIPE_SECRET_KEY` | Stripe secret key |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 
 ---
 
 ## API Endpoints
 
-> ⚠️ **Note**: These endpoints are examples. You may add, edit, or remove endpoints based on your implementation needs.
-
 ### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user (tenant/landlord) |
-| POST | `/api/auth/login` | Login user, return JWT |
-| GET | `/api/auth/me` | Get current authenticated user |
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| GET | `/api/auth/me` | Authenticated |
+| PATCH | `/api/auth/me` | Authenticated |
 
 ### Properties (Public)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/properties` | Get all properties with filters (location, price, type) |
-| GET | `/api/properties/:id` | Get property details |
-| GET | `/api/categories` | Get all property categories |
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| GET | `/api/properties` | Public |
+| GET | `/api/properties/:id` | Public |
+| GET | `/api/categories` | Public |
 
 ### Landlord Management
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/landlord/properties` | Create new property listing |
-| PUT | `/api/landlord/properties/:id` | Update property listing |
-| DELETE | `/api/landlord/properties/:id` | Remove property listing |
-| GET | `/api/landlord/requests` | Get all rental requests for landlord's properties |
-| PATCH | `/api/landlord/requests/:id` | Approve or reject a rental request |
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/api/landlord/properties` | Landlord |
+| PUT | `/api/landlord/properties/:id` | Landlord |
+| DELETE | `/api/landlord/properties/:id` | Landlord |
+| GET | `/api/landlord/requests` | Landlord |
+| PATCH | `/api/landlord/requests/:id` | Landlord |
 
 ### Rental Requests
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/rentals` | Submit a rental request (tenant) |
-| GET | `/api/rentals` | Get user's rental requests |
-| GET | `/api/rentals/:id` | Get rental request details |
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/api/rentals` | Tenant |
+| GET | `/api/rentals` | Tenant |
+| GET | `/api/rentals/:id` | Tenant / Landlord / Admin |
 
-### Payments (Stripe / SSLCommerz)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/payments/create` | Create a payment intent/session for an approved rental |
-| POST | `/api/payments/confirm` | Confirm/verify payment (webhook or callback) |
-| GET | `/api/payments` | Get user's payment history |
-| GET | `/api/payments/:id` | Get payment details |
+### Payments
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/api/payments/create` | Tenant |
+| POST | `/api/payments/confirm` | Tenant |
+| GET | `/api/payments` | Tenant |
+| GET | `/api/payments/:id` | Tenant / Admin |
+| POST | `/api/payments/webhook/stripe` | Stripe |
+| GET | `/api/payments/sslcommerz/callback` | Public callback |
 
 ### Reviews
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/reviews` | Create review (after completed rental) |
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| POST | `/api/reviews` | Tenant |
 
 ### Admin
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/users` | Get all users |
-| PATCH | `/api/admin/users/:id` | Update user status (ban/unban) |
-| GET | `/api/admin/properties` | Get all properties |
-| GET | `/api/admin/rentals` | Get all rental requests |
+| Method | Endpoint | Access |
+|--------|----------|--------|
+| GET | `/api/admin/users` | Admin |
+| PATCH | `/api/admin/users/:id` | Admin |
+| GET | `/api/admin/properties` | Admin |
+| GET | `/api/admin/rentals` | Admin |
+| POST | `/api/categories` | Admin |
+| PATCH | `/api/categories/:id` | Admin |
+| DELETE | `/api/categories/:id` | Admin |
+
+### Query Support
+
+Properties support filtering by `location`, `search`, `minPrice`, `maxPrice`, `categoryId`, `amenities`, `isAvailable`, plus `page` and `limit`.
+
+List endpoints across rentals, payments, and admin modules support pagination and role/status filters.
 
 ---
 
-## Database Tables
+## Rental Workflow
 
-Design your own schema for the following tables:
+```
+PENDING -> APPROVED -> PAYMENT -> ACTIVE -> COMPLETED -> REVIEW
+```
 
-- **Users** - Store user information, authentication details, and role
-- **Properties** - Rental property listings (linked to landlord)
-- **Categories** - Property type categories (apartment, house, studio, etc.)
-- **RentalRequests** - Rental requests between tenants and landlords
-- **Payments** - Payment transactions (transactionId, rentalRequestId, amount, method, provider [Stripe/SSLCommerz], status [pending/completed/failed], paidAt, etc.)
-- **Reviews** - Tenant reviews for properties
-
-> 💡 *Think about what fields each table needs based on the features above.*
+1. Tenant submits a rental request (`PENDING`)
+2. Landlord approves or rejects the request
+3. Tenant creates and confirms payment for approved requests
+4. Rental becomes `ACTIVE` after successful payment
+5. Landlord marks rental as `COMPLETED`
+6. Tenant leaves a review for completed rentals
 
 ---
 
-## Flow Diagrams
+## Postman Collection
 
-### 🏠 Tenant Journey
+Import `postman/RentNest.postman_collection.json` into Postman.
 
-```
-                              ┌──────────────┐
-                              │   Register   │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   Browse     │
-                              │  Properties  │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │View Property │
-                              │   Details    │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   Submit     │
-                              │   Request    │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │  Wait for    │
-                              │  Approval    │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │  Make Payment│
-                              │(Stripe/SSLC) │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │ Leave Review │
-                              └──────────────┘
-```
+Set collection variables:
+- `baseUrl`
+- `tenantToken`
+- `landlordToken`
+- `adminToken`
 
-### 🏘️ Landlord Journey
+Login requests return JWT tokens in `data.token`.
+
+---
+
+## Deployment (Render)
+
+1. Push the repository to GitHub
+2. Create a new Web Service on Render
+3. Use `render.yaml` or configure manually:
+   - **Build Command:** `npm install && npx prisma generate && npm run build`
+   - **Start Command:** `npm run db:migrate && npm start`
+4. Add environment variables from `.env.example`
+5. Run `npm run seed` once against the production database
+
+---
+
+## Project Structure
 
 ```
-                              ┌──────────────┐
-                              │   Register   │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   Create     │
-                              │  Listings    │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │    View      │
-                              │  Requests    │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   Approve/   │
-                              │   Reject     │
-                              └──────────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   Manage     │
-                              │  Properties  │
-                              └──────────────┘
+src/
+  middlewares/     # auth, validation, error handling
+  modules/         # feature modules (auth, property, rental, etc.)
+  router/          # auth routes
+  validators/      # Zod schemas
+  utils/           # helpers (JWT, pagination, responses)
+  lib/             # Prisma client
+  server.ts
+prisma/
+  schema.prisma
+  seed.ts
+  migrations/
+postman/
+  RentNest.postman_collection.json
 ```
 
-### 📊 Rental Request Status
+---
 
-```
-                              ┌──────────────┐
-                              │   PENDING    │
-                              └──────────────┘
-                               /            \
-                              /              \
-                       (landlord)       (landlord)
-                        approves        rejects
-                            /                \
-                           ▼                  ▼
-                   ┌──────────────┐   ┌──────────────┐
-                   │   APPROVED   │   │   REJECTED   │
-                   └──────────────┘   └──────────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │   PAYMENT    │
-                   │  (Stripe/    │
-                   │  SSLCommerz) │
-                   └──────────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │    ACTIVE    │
-                   │  (move-in)   │
-                   └──────────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │  COMPLETED   │
-                   └──────────────┘
-```
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Compile TypeScript |
+| `npm start` | Run production build |
+| `npm run seed` | Seed database with demo data |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:migrate` | Apply migrations |
+
+---
+
+## License
+
+ISC
