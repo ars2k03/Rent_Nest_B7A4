@@ -1,63 +1,74 @@
-import dotenv from "dotenv";
-dotenv.config();
 import bcrypt from "bcrypt";
 import { prisma } from "../../lib/prisma.js";
 import { generateToken } from "../../utils/jwt.js";
+import { AppError } from "../../utils/AppError.js";
+import { sanitizeUser } from "../../utils/sanitizeUser.js";
+import type { UserRole } from "../../../generated/prisma/client.js";
 
+type RegisterPayload = {
+  name: string;
+  email: string;
+  password: string;
+  role: "TENANT" | "LANDLORD";
+  phone?: string;
+};
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
+type LoginPayload = {
+  email: string;
+  password: string;
+};
 
-export const createUser = async (payload: any) => {
+type UpdateProfilePayload = {
+  name?: string;
+  phone?: string;
+  password?: string;
+};
+
+export const createUser = async (payload: RegisterPayload) => {
   const { name, email, password, role, phone } = payload;
 
-  // Check existing user
   const isUserExists = await prisma.user.findUnique({
-    where: {
-      email,
-    },
+    where: { email },
   });
 
   if (isUserExists) {
-    throw new Error("Email already exists");
+    throw new AppError("Email already exists", 409);
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Create user
   const user = await prisma.user.create({
     data: {
       name,
       email,
       password: hashedPassword,
-      role,
-      phone,
+      role: role as UserRole,
+      ...(phone ? { phone } : {}),
     },
   });
 
-  return user;
+  return sanitizeUser(user);
 };
 
-export const loginUserService = async (payload: any) => {
+export const loginUserService = async (payload: LoginPayload) => {
   const { email, password } = payload;
 
   const user = await prisma.user.findUnique({
-    where: {
-      email,
-    },
+    where: { email },
   });
 
   if (!user) {
-    throw new Error("User not found");
+    throw new AppError("Invalid email or password", 401);
   }
 
-  const isPasswordMatched = await bcrypt.compare(
-    password,
-    user.password
-  );
+  if (user.isDeleted) {
+    throw new AppError("Your account has been banned", 403);
+  }
+
+  const isPasswordMatched = await bcrypt.compare(password, user.password);
 
   if (!isPasswordMatched) {
-    throw new Error("Incorrect password");
+    throw new AppError("Invalid email or password", 401);
   }
 
   const token = generateToken({
@@ -68,6 +79,36 @@ export const loginUserService = async (payload: any) => {
 
   return {
     token,
-    user,
+    user: sanitizeUser(user),
   };
+};
+
+export const getCurrentUserService = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user || user.isDeleted) {
+    throw new AppError("User not found", 404);
+  }
+
+  return sanitizeUser(user);
+};
+
+export const updateProfileService = async (
+  userId: string,
+  payload: UpdateProfilePayload
+) => {
+  const data: UpdateProfilePayload = { ...payload };
+
+  if (payload.password) {
+    data.password = await bcrypt.hash(payload.password, 10);
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+
+  return sanitizeUser(user);
 };

@@ -1,36 +1,29 @@
 import type { Request, Response } from "express";
-import { createUser, loginUserService } from "./auth.service.js";
+import {
+  createUser,
+  getCurrentUserService,
+  loginUserService,
+  updateProfileService,
+} from "./auth.service.js";
+import { sendSuccess } from "../../utils/apiResponse.js";
+import { asyncHandler } from "../../middlewares/asyncHandler.js";
 
-export const registerUser = async (req: Request, res: Response) => {
-  try {
-    const result = await createUser(req.body);
+export const registerUser = asyncHandler(async (req: Request, res: Response) => {
+  const result = await createUser(req.body);
+  return sendSuccess(res, "User registered successfully", result, 201);
+});
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+export const loginUser = asyncHandler(async (req: Request, res: Response) => {
+  const result = await loginUserService(req.body);
+  return sendSuccess(res, "Login successful", result);
+});
 
-export const loginUser = async (req: Request, res: Response) => {
-  try {
-    const result = await loginUserService(req.body);
+export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+  const result = await getCurrentUserService(req.user!.id);
+  return sendSuccess(res, "Current user retrieved successfully", result);
+});
 
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const result = await updateProfileService(req.user!.id, req.body);
+  return sendSuccess(res, "Profile updated successfully", result);
+});
