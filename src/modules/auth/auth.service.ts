@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { prisma } from "../../lib/prisma.js";
+import { generateToken } from "../../utils/jwt.js";
 
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -60,17 +60,11 @@ export const loginUserService = async (payload: any) => {
     throw new Error("Incorrect password");
   }
 
-  const token = jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    },
-    JWT_SECRET,
-    {
-      expiresIn: "7d",
-    }
-  );
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
 
   return {
     token,
