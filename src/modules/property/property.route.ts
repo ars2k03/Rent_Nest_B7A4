@@ -1,14 +1,14 @@
 import express from "express";
+import { getAllProperties, getSingleProperty } from "./property.controller.js";
+import { validate } from "../../middlewares/validate.middleware.js";
 import {
-  createProperty,
-  getAllProperties,
-  getSingleProperty,
-} from "./property.controller.js";
+  propertyIdSchema,
+  propertyQuerySchema,
+} from "../../validators/property.validator.js";
 
 const router = express.Router();
 
-router.post("/", createProperty);
-router.get("/", getAllProperties);
-router.get("/:id", getSingleProperty);
+router.get("/", validate(propertyQuerySchema, "query"), getAllProperties);
+router.get("/:id", validate(propertyIdSchema, "params"), getSingleProperty);
 
 export default router;

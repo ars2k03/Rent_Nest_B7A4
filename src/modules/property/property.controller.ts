@@ -1,59 +1,17 @@
 import type { Request, Response } from "express";
 import {
-  createPropertyService,
   getAllPropertiesService,
   getSinglePropertyService,
-} from "./property.service";
+} from "./property.service.js";
+import { sendSuccess } from "../../utils/apiResponse.js";
+import { asyncHandler } from "../../middlewares/asyncHandler.js";
 
-export const createProperty = async (req: Request, res: Response) => {
-  try {
-    const result = await createPropertyService(req.body);
+export const getAllProperties = asyncHandler(async (req: Request, res: Response) => {
+  const result = await getAllPropertiesService(req.query);
+  return sendSuccess(res, "Properties retrieved successfully", result);
+});
 
-    res.status(201).json({
-      success: true,
-      message: "Property created successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const getAllProperties = async (req: Request, res: Response) => {
-  try {
-    const result = await getAllPropertiesService();
-
-    res.status(200).json({
-      success: true,
-      message: "Properties retrieved successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const getSingleProperty = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const result = await getSinglePropertyService(id as string);
-
-    res.status(200).json({
-      success: true,
-      message: "Property retrieved successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+export const getSingleProperty = asyncHandler(async (req: Request, res: Response) => {
+  const result = await getSinglePropertyService(req.params.id as string);
+  return sendSuccess(res, "Property retrieved successfully", result);
+});
