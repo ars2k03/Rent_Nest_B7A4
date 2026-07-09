@@ -2,47 +2,53 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildPaginationMeta, getPagination } from "../../utils/pagination.js";
 import { sanitizeUser } from "../../utils/sanitizeUser.js";
+import type {
+  CreatePropertyInput,
+  PropertyQueryInput,
+  UpdatePropertyInput,
+} from "../../validators/property.validator.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
-type PropertyQuery = {
-  location?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  categoryId?: string;
-  amenities?: string;
-  search?: string;
-  isAvailable?: boolean;
-  page?: string;
-  limit?: string;
-};
+const buildPropertyCreateData = (
+  payload: CreatePropertyInput,
+  landlordId: string
+): Prisma.PropertyCreateInput => ({
+  title: payload.title,
+  description: payload.description,
+  location: payload.location,
+  price: payload.price,
+  bedrooms: payload.bedrooms,
+  bathrooms: payload.bathrooms,
+  amenities: payload.amenities,
+  landlord: { connect: { id: landlordId } },
+  category: { connect: { id: payload.categoryId } },
+  ...(payload.image ? { image: payload.image } : {}),
+  ...(payload.isAvailable !== undefined ? { isAvailable: payload.isAvailable } : {}),
+});
 
-export const createPropertyService = async (
-  landlordId: string,
-  payload: Record<string, unknown>
-) => {
-  const category = await prisma.category.findUnique({
-    where: { id: payload.categoryId as string },
-  });
+const buildPropertyUpdateData = (
+  payload: UpdatePropertyInput
+): Prisma.PropertyUpdateInput => {
+  const data: Prisma.PropertyUpdateInput = {};
 
-  if (!category) {
-    throw new AppError("Category not found", 404);
+  if (payload.title !== undefined) data.title = payload.title;
+  if (payload.description !== undefined) data.description = payload.description;
+  if (payload.location !== undefined) data.location = payload.location;
+  if (payload.price !== undefined) data.price = payload.price;
+  if (payload.bedrooms !== undefined) data.bedrooms = payload.bedrooms;
+  if (payload.bathrooms !== undefined) data.bathrooms = payload.bathrooms;
+  if (payload.image !== undefined) data.image = payload.image;
+  if (payload.amenities !== undefined) data.amenities = payload.amenities;
+  if (payload.isAvailable !== undefined) data.isAvailable = payload.isAvailable;
+  if (payload.categoryId !== undefined) {
+    data.category = { connect: { id: payload.categoryId } };
   }
 
-  return prisma.property.create({
-    data: {
-      ...payload,
-      landlordId,
-    } as Parameters<typeof prisma.property.create>[0]["data"],
-    include: {
-      landlord: true,
-      category: true,
-    },
-  });
+  return data;
 };
 
-export const getAllPropertiesService = async (query: PropertyQuery) => {
-  const { page, limit, skip } = getPagination(query.page, query.limit);
-
-  const where: Record<string, unknown> = {};
+const buildPropertyWhere = (query: PropertyQueryInput): Prisma.PropertyWhereInput => {
+  const where: Prisma.PropertyWhereInput = {};
 
   if (query.location) {
     where.location = { contains: query.location, mode: "insensitive" };
@@ -74,6 +80,34 @@ export const getAllPropertiesService = async (query: PropertyQuery) => {
   if (query.isAvailable !== undefined) {
     where.isAvailable = query.isAvailable;
   }
+
+  return where;
+};
+
+export const createPropertyService = async (
+  landlordId: string,
+  payload: CreatePropertyInput
+) => {
+  const category = await prisma.category.findUnique({
+    where: { id: payload.categoryId },
+  });
+
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
+
+  return prisma.property.create({
+    data: buildPropertyCreateData(payload, landlordId),
+    include: {
+      landlord: true,
+      category: true,
+    },
+  });
+};
+
+export const getAllPropertiesService = async (query: PropertyQueryInput) => {
+  const { page, limit, skip } = getPagination(query.page, query.limit);
+  const where = buildPropertyWhere(query);
 
   const [properties, total] = await Promise.all([
     prisma.property.findMany({
@@ -131,7 +165,7 @@ export const getSinglePropertyService = async (id: string) => {
 export const updatePropertyService = async (
   id: string,
   landlordId: string,
-  payload: Record<string, unknown>
+  payload: UpdatePropertyInput
 ) => {
   const property = await prisma.property.findUnique({ where: { id } });
 
@@ -145,7 +179,7 @@ export const updatePropertyService = async (
 
   if (payload.categoryId) {
     const category = await prisma.category.findUnique({
-      where: { id: payload.categoryId as string },
+      where: { id: payload.categoryId },
     });
 
     if (!category) {
@@ -155,7 +189,7 @@ export const updatePropertyService = async (
 
   const updated = await prisma.property.update({
     where: { id },
-    data: payload as Parameters<typeof prisma.property.update>[0]["data"],
+    data: buildPropertyUpdateData(payload),
     include: {
       landlord: true,
       category: true,
@@ -184,11 +218,10 @@ export const deletePropertyService = async (id: string, landlordId: string) => {
 
 export const getLandlordPropertiesService = async (
   landlordId: string,
-  query: PropertyQuery
+  query: PropertyQueryInput
 ) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
-
-  const where = { landlordId };
+  const where: Prisma.PropertyWhereInput = { landlordId };
 
   const [properties, total] = await Promise.all([
     prisma.property.findMany({

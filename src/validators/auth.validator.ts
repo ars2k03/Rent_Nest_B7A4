@@ -20,3 +20,7 @@ export const updateProfileSchema = z.object({
   phone: z.string().optional(),
   password: z.string().min(6).optional(),
 });
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

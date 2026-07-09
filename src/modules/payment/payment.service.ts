@@ -3,7 +3,16 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildPaginationMeta, getPagination } from "../../utils/pagination.js";
 import { markRentalActiveService } from "../rental/rental.service.js";
-import type { PaymentProvider, PaymentStatus } from "../../../generated/prisma/client.js";
+import type {
+  ConfirmPaymentInput,
+  CreatePaymentInput,
+  PaymentQueryInput,
+} from "../../validators/payment.validator.js";
+import type {
+  PaymentStatus,
+  UserRole,
+} from "../../../generated/prisma/client.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
 const getStripe = () => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -15,15 +24,9 @@ const getStripe = () => {
   return new Stripe(secretKey);
 };
 
-type PaymentQuery = {
-  status?: PaymentStatus;
-  page?: string;
-  limit?: string;
-};
-
 export const createPaymentService = async (
   tenantId: string,
-  payload: { rentalRequestId: string; provider: PaymentProvider }
+  payload: CreatePaymentInput
 ) => {
   const rental = await prisma.rentalRequest.findUnique({
     where: { id: payload.rentalRequestId },
@@ -118,12 +121,7 @@ export const createPaymentService = async (
 
 export const confirmPaymentService = async (
   tenantId: string,
-  payload: {
-    rentalRequestId: string;
-    transactionId: string;
-    provider: PaymentProvider;
-    paymentIntentId?: string;
-  }
+  payload: ConfirmPaymentInput
 ) => {
   const rental = await prisma.rentalRequest.findUnique({
     where: { id: payload.rentalRequestId },
@@ -176,19 +174,19 @@ export const confirmPaymentService = async (
 
 export const getPaymentHistoryService = async (
   userId: string,
-  role: string,
-  query: PaymentQuery
+  role: UserRole,
+  query: PaymentQueryInput
 ) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
 
-  const where =
+  const where: Prisma.PaymentWhereInput =
     role === "ADMIN"
       ? {
-          ...(query.status ? { status: query.status } : {}),
+          ...(query.status ? { status: query.status as PaymentStatus } : {}),
         }
       : {
           rentalRequest: { tenantId: userId },
-          ...(query.status ? { status: query.status } : {}),
+          ...(query.status ? { status: query.status as PaymentStatus } : {}),
         };
 
   const [payments, total] = await Promise.all([
@@ -217,7 +215,7 @@ export const getPaymentHistoryService = async (
 export const getPaymentByIdService = async (
   id: string,
   userId: string,
-  role: string
+  role: UserRole
 ) => {
   const payment = await prisma.payment.findUnique({
     where: { id },

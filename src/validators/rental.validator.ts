@@ -21,3 +21,8 @@ export const rentalQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
 });
+
+export type CreateRentalInput = z.infer<typeof createRentalSchema>;
+export type RentalIdParams = z.infer<typeof rentalIdSchema>;
+export type UpdateRentalStatusInput = z.infer<typeof updateRentalStatusSchema>;
+export type RentalQueryInput = z.infer<typeof rentalQuerySchema>;

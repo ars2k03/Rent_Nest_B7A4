@@ -33,3 +33,8 @@ export const propertyQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
 });
+
+export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
+export type UpdatePropertyInput = z.infer<typeof updatePropertySchema>;
+export type PropertyIdParams = z.infer<typeof propertyIdSchema>;
+export type PropertyQueryInput = z.infer<typeof propertyQuerySchema>;

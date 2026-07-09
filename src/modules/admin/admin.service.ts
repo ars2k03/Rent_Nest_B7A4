@@ -2,19 +2,13 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildPaginationMeta, getPagination } from "../../utils/pagination.js";
 import { sanitizeUser, sanitizeUsers } from "../../utils/sanitizeUser.js";
-import type { UserRole } from "../../../generated/prisma/client.js";
+import type { AdminQueryInput } from "../../validators/admin.validator.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
-type AdminQuery = {
-  role?: UserRole;
-  isDeleted?: boolean;
-  page?: string;
-  limit?: string;
-};
-
-export const getAllUsersService = async (query: AdminQuery) => {
+export const getAllUsersService = async (query: AdminQueryInput) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
 
-  const where = {
+  const where: Prisma.UserWhereInput = {
     ...(query.role ? { role: query.role } : {}),
     ...(query.isDeleted !== undefined ? { isDeleted: query.isDeleted } : {}),
   };
@@ -54,7 +48,7 @@ export const updateUserStatusService = async (id: string, isDeleted: boolean) =>
   return sanitizeUser(updatedUser);
 };
 
-export const getAllAdminPropertiesService = async (query: AdminQuery) => {
+export const getAllAdminPropertiesService = async (query: AdminQueryInput) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
 
   const [properties, total] = await Promise.all([
@@ -79,7 +73,7 @@ export const getAllAdminPropertiesService = async (query: AdminQuery) => {
   };
 };
 
-export const getAllAdminRentalsService = async (query: AdminQuery) => {
+export const getAllAdminRentalsService = async (query: AdminQueryInput) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
 
   const [rentals, total] = await Promise.all([

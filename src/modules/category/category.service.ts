@@ -1,3 +1,5 @@
+import type { CreateCategoryInput, UpdateCategoryInput } from "../../validators/category.validator.js";
+
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 
@@ -7,10 +9,7 @@ export const getAllCategoriesService = async () => {
   });
 };
 
-export const createCategoryService = async (payload: {
-  name: string;
-  description?: string;
-}) => {
+export const createCategoryService = async (payload: CreateCategoryInput) => {
   const existing = await prisma.category.findUnique({
     where: { name: payload.name },
   });
@@ -19,12 +18,17 @@ export const createCategoryService = async (payload: {
     throw new AppError("Category already exists", 409);
   }
 
-  return prisma.category.create({ data: payload });
+  return prisma.category.create({
+    data: {
+      name: payload.name,
+      ...(payload.description ? { description: payload.description } : {}),
+    },
+  });
 };
 
 export const updateCategoryService = async (
   id: string,
-  payload: { name?: string; description?: string }
+  payload: UpdateCategoryInput
 ) => {
   const category = await prisma.category.findUnique({ where: { id } });
 
@@ -34,7 +38,12 @@ export const updateCategoryService = async (
 
   return prisma.category.update({
     where: { id },
-    data: payload,
+    data: {
+      ...(payload.name !== undefined ? { name: payload.name } : {}),
+      ...(payload.description !== undefined
+        ? { description: payload.description }
+        : {}),
+    },
   });
 };
 

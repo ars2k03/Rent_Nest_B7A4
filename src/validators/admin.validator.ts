@@ -17,3 +17,7 @@ export const adminQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
 });
+
+export type UserIdParams = z.infer<typeof userIdSchema>;
+export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
+export type AdminQueryInput = z.infer<typeof adminQuerySchema>;

@@ -21,3 +21,8 @@ export const paymentQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
 });
+
+export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
+export type ConfirmPaymentInput = z.infer<typeof confirmPaymentSchema>;
+export type PaymentIdParams = z.infer<typeof paymentIdSchema>;
+export type PaymentQueryInput = z.infer<typeof paymentQuerySchema>;

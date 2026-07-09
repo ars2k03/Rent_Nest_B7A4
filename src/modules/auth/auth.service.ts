@@ -3,28 +3,14 @@ import { prisma } from "../../lib/prisma.js";
 import { generateToken } from "../../utils/jwt.js";
 import { AppError } from "../../utils/AppError.js";
 import { sanitizeUser } from "../../utils/sanitizeUser.js";
-import type { UserRole } from "../../../generated/prisma/client.js";
+import type {
+  LoginInput,
+  RegisterInput,
+  UpdateProfileInput,
+} from "../../validators/auth.validator.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
-type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-  role: "TENANT" | "LANDLORD";
-  phone?: string;
-};
-
-type LoginPayload = {
-  email: string;
-  password: string;
-};
-
-type UpdateProfilePayload = {
-  name?: string;
-  phone?: string;
-  password?: string;
-};
-
-export const createUser = async (payload: RegisterPayload) => {
+export const createUser = async (payload: RegisterInput) => {
   const { name, email, password, role, phone } = payload;
 
   const isUserExists = await prisma.user.findUnique({
@@ -42,7 +28,7 @@ export const createUser = async (payload: RegisterPayload) => {
       name,
       email,
       password: hashedPassword,
-      role: role as UserRole,
+      role,
       ...(phone ? { phone } : {}),
     },
   });
@@ -50,7 +36,7 @@ export const createUser = async (payload: RegisterPayload) => {
   return sanitizeUser(user);
 };
 
-export const loginUserService = async (payload: LoginPayload) => {
+export const loginUserService = async (payload: LoginInput) => {
   const { email, password } = payload;
 
   const user = await prisma.user.findUnique({
@@ -97,11 +83,19 @@ export const getCurrentUserService = async (userId: string) => {
 
 export const updateProfileService = async (
   userId: string,
-  payload: UpdateProfilePayload
+  payload: UpdateProfileInput
 ) => {
-  const data: UpdateProfilePayload = { ...payload };
+  const data: Prisma.UserUpdateInput = {};
 
-  if (payload.password) {
+  if (payload.name !== undefined) {
+    data.name = payload.name;
+  }
+
+  if (payload.phone !== undefined) {
+    data.phone = payload.phone;
+  }
+
+  if (payload.password !== undefined) {
     data.password = await bcrypt.hash(payload.password, 10);
   }
 

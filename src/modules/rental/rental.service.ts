@@ -2,13 +2,13 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildPaginationMeta, getPagination } from "../../utils/pagination.js";
 import { sanitizeUser } from "../../utils/sanitizeUser.js";
-import type { RentalStatus } from "../../../generated/prisma/client.js";
-
-type RentalQuery = {
-  status?: RentalStatus;
-  page?: string;
-  limit?: string;
-};
+import type {
+  CreateRentalInput,
+  RentalQueryInput,
+  UpdateRentalStatusInput,
+} from "../../validators/rental.validator.js";
+import type { RentalStatus, UserRole } from "../../../generated/prisma/client.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
 const rentalInclude = {
   tenant: true,
@@ -35,7 +35,7 @@ const formatRental = (rental: {
 
 export const createRentalService = async (
   tenantId: string,
-  payload: { propertyId: string; moveInDate: Date; message?: string }
+  payload: CreateRentalInput
 ) => {
   const property = await prisma.property.findUnique({
     where: { id: payload.propertyId },
@@ -80,12 +80,12 @@ export const createRentalService = async (
 
 export const getTenantRentalsService = async (
   tenantId: string,
-  query: RentalQuery
+  query: RentalQueryInput
 ) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
-  const where = {
+  const where: Prisma.RentalRequestWhereInput = {
     tenantId,
-    ...(query.status ? { status: query.status } : {}),
+    ...(query.status ? { status: query.status as RentalStatus } : {}),
   };
 
   const [rentals, total] = await Promise.all([
@@ -105,7 +105,11 @@ export const getTenantRentalsService = async (
   };
 };
 
-export const getSingleRentalService = async (id: string, userId: string, role: string) => {
+export const getSingleRentalService = async (
+  id: string,
+  userId: string,
+  role: UserRole
+) => {
   const rental = await prisma.rentalRequest.findUnique({
     where: { id },
     include: rentalInclude,
@@ -128,13 +132,13 @@ export const getSingleRentalService = async (id: string, userId: string, role: s
 
 export const getLandlordRentalRequestsService = async (
   landlordId: string,
-  query: RentalQuery
+  query: RentalQueryInput
 ) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
 
-  const where = {
+  const where: Prisma.RentalRequestWhereInput = {
     property: { landlordId },
-    ...(query.status ? { status: query.status } : {}),
+    ...(query.status ? { status: query.status as RentalStatus } : {}),
   };
 
   const [rentals, total] = await Promise.all([
@@ -157,7 +161,7 @@ export const getLandlordRentalRequestsService = async (
 export const updateLandlordRentalStatusService = async (
   id: string,
   landlordId: string,
-  status: "APPROVED" | "REJECTED" | "COMPLETED"
+  status: UpdateRentalStatusInput["status"]
 ) => {
   const rental = await prisma.rentalRequest.findUnique({
     where: { id },
@@ -196,9 +200,11 @@ export const markRentalActiveService = async (rentalRequestId: string) => {
   });
 };
 
-export const getAllRentalsService = async (query: RentalQuery) => {
+export const getAllRentalsService = async (query: RentalQueryInput) => {
   const { page, limit, skip } = getPagination(query.page, query.limit);
-  const where = query.status ? { status: query.status } : {};
+  const where: Prisma.RentalRequestWhereInput = query.status
+    ? { status: query.status as RentalStatus }
+    : {};
 
   const [rentals, total] = await Promise.all([
     prisma.rentalRequest.findMany({

@@ -2,9 +2,11 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { sanitizeUser } from "../../utils/sanitizeUser.js";
 
+import type { CreateReviewInput } from "../../validators/review.validator.js";
+
 export const createReviewService = async (
   tenantId: string,
-  payload: { propertyId: string; rating: number; comment: string }
+  payload: CreateReviewInput
 ) => {
   const completedRental = await prisma.rentalRequest.findFirst({
     where: {
