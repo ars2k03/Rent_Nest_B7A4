@@ -1,25 +1,46 @@
-import express from 'express';
+import express from "express";
 import cors from "cors";
 import authRoutes from "./router/auth.route.js";
 import propertyRoutes from "./modules/property/property.route.js";
 import rentalRoutes from "./modules/rental/rental.route.js";
+import categoryRoutes from "./modules/category/category.route.js";
+import landlordRoutes from "./modules/landlord/landlord.route.js";
+import paymentRoutes from "./modules/payment/payment.route.js";
+import reviewRoutes from "./modules/review/review.route.js";
+import adminRoutes from "./modules/admin/admin.route.js";
+import {
+  globalErrorHandler,
+  notFoundHandler,
+} from "./middlewares/error.middleware.js";
+
 const app = express();
-const port = 8000;
+const port = Number(process.env.PORT) || 8000;
 
 app.use(cors());
+
+app.use("/api/payments/webhook/stripe", express.raw({ type: "application/json" }));
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
-app.use("/api/properties", propertyRoutes);
-app.use("/api/rentals", rentalRoutes);
-
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.status(200).json({
-    status : "OK",
-    message : "RentNest API is running..."
+    success: true,
+    message: "RentNest API is running...",
+    errorDetails: null,
   });
 });
 
+app.use("/api/auth", authRoutes);
+app.use("/api/properties", propertyRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/landlord", landlordRoutes);
+app.use("/api/rentals", rentalRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin", adminRoutes);
+
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
+
 app.listen(port, () => {
-    console.log(`Server is running on ${port}`);
-})
+  console.log(`Server is running on ${port}`);
+});
