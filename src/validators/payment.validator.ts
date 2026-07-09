@@ -1,0 +1,23 @@
+import { z } from "zod";
+
+export const createPaymentSchema = z.object({
+  rentalRequestId: z.string().min(1),
+  provider: z.enum(["STRIPE", "SSLCOMMERZ"]),
+});
+
+export const confirmPaymentSchema = z.object({
+  rentalRequestId: z.string().min(1),
+  transactionId: z.string().min(1),
+  provider: z.enum(["STRIPE", "SSLCOMMERZ"]),
+  paymentIntentId: z.string().optional(),
+});
+
+export const paymentIdSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const paymentQuerySchema = z.object({
+  status: z.enum(["PENDING", "COMPLETED", "FAILED"]).optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});
