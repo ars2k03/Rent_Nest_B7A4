@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const stripeWebhookHeadersSchema = z.object({
+  "stripe-signature": z.string().min(1),
+});
+
+export const sslCommerzCallbackQuerySchema = z.object({
+  transactionId: z.string().min(1),
+});
+
 export const createPaymentSchema = z.object({
   rentalRequestId: z.string().min(1),
   provider: z.enum(["STRIPE", "SSLCOMMERZ"]),

@@ -11,11 +11,16 @@ import {
   createCategorySchema,
   updateCategorySchema,
 } from "../../validators/category.validator.js";
+import { z } from "zod";
 import { authenticate, authorize } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", getAllCategories);
+router.get(
+  "/",
+  validate(z.object({}).strict(), "query"),
+  getAllCategories
+);
 router.post(
   "/",
   authenticate(),

@@ -14,12 +14,22 @@ import {
   createPaymentSchema,
   paymentIdSchema,
   paymentQuerySchema,
+  sslCommerzCallbackQuerySchema,
+  stripeWebhookHeadersSchema,
 } from "../../validators/payment.validator.js";
 
 const router = express.Router();
 
-router.get("/sslcommerz/callback", sslCommerzCallback);
-router.post("/webhook/stripe", stripeWebhook);
+router.get(
+  "/sslcommerz/callback",
+  validate(sslCommerzCallbackQuerySchema, "query"),
+  sslCommerzCallback
+);
+router.post(
+  "/webhook/stripe",
+  validate(stripeWebhookHeadersSchema, "headers"),
+  stripeWebhook
+);
 
 router.use(authenticate(), authorize("TENANT"));
 

@@ -140,6 +140,10 @@ export const confirmPaymentService = async (
     throw new AppError("Payment record not found", 404);
   }
 
+  if (rental.payment.status === "COMPLETED") {
+    return rental.payment;
+  }
+
   if (rental.payment.transactionId !== payload.transactionId) {
     throw new AppError("Transaction ID does not match", 400);
   }

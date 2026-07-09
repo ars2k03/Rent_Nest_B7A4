@@ -122,6 +122,7 @@ After running `npm run seed`:
 | `APP_URL` | Public API URL for payment callbacks |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `CORS_ORIGIN` | Comma-separated allowed origins for CORS |
 
 ---
 

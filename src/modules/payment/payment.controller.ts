@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import * as PaymentService from "./payment.service.js";
-import { sendSuccess } from "../../utils/apiResponse.js";
+import { sendError, sendSuccess } from "../../utils/apiResponse.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 import {
   getAuthUser,
@@ -50,20 +50,16 @@ export const getPaymentById = asyncHandler(async (req: Request, res: Response) =
 export const stripeWebhook = asyncHandler(async (req: Request, res: Response) => {
   const signature = req.headers["stripe-signature"];
 
+  if (Array.isArray(signature)) {
+    return sendError(res, "Invalid Stripe signature", 400);
+  }
+
   if (!signature || typeof signature !== "string") {
-    return res.status(400).json({
-      success: false,
-      message: "Missing Stripe signature",
-      errorDetails: null,
-    });
+    return sendError(res, "Missing Stripe signature", 400);
   }
 
   if (!Buffer.isBuffer(req.body)) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid webhook payload",
-      errorDetails: null,
-    });
+    return sendError(res, "Invalid webhook payload", 400);
   }
 
   const result = await PaymentService.handleStripeWebhookService(req.body, signature);
@@ -74,11 +70,7 @@ export const sslCommerzCallback = asyncHandler(async (req: Request, res: Respons
   const transactionId = req.query.transactionId;
 
   if (typeof transactionId !== "string" || transactionId.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Transaction ID is required",
-      errorDetails: null,
-    });
+    return sendError(res, "Transaction ID is required", 400);
   }
 
   const payment = await PaymentService.confirmSslCommerzCallbackService(transactionId);
